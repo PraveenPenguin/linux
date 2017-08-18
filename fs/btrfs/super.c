@@ -1426,13 +1426,12 @@ static struct dentry *mount_subvol(const char *subvol_name, u64 subvol_objectid,
 	root = mount_subtree(mnt, subvol_name);
 	/* mount_subtree() drops our reference on the vfsmount. */
 	mnt = NULL;
-
+	printk("\n\n IN mount ");
 	if (!IS_ERR(root)) {
 		struct super_block *s = root->d_sb;
 		struct btrfs_fs_info *fs_info = btrfs_sb(s);
 		struct inode *root_inode = d_inode(root);
 		u64 root_objectid = BTRFS_I(root_inode)->root->root_key.objectid;
-
 		ret = 0;
 		if (!is_subvolume_inode(root_inode)) {
 			btrfs_err(fs_info, "'%s' is not a valid subvolume",
@@ -1454,7 +1453,8 @@ static struct dentry *mount_subvol(const char *subvol_name, u64 subvol_objectid,
 			dput(root);
 			root = ERR_PTR(ret);
 			deactivate_locked_super(s);
-		}
+		}//else
+		//	inc_nlink(&BTRFS_I(root_inode)->vfs_inode);
 	}
 
 out:

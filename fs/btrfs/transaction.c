@@ -1510,6 +1510,7 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 					 dentry->d_name.len, 0);
 	if (dir_item != NULL && !IS_ERR(dir_item)) {
 		pending->error = -EEXIST;
+		printk("\n\ndir exists");
 		goto dir_item_existed;
 	} else if (IS_ERR(dir_item)) {
 		ret = PTR_ERR(dir_item);
@@ -1548,7 +1549,11 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	memcpy(new_root_item->uuid, new_uuid.b, BTRFS_UUID_SIZE);
 	memcpy(new_root_item->parent_uuid, root->root_item.uuid,
 			BTRFS_UUID_SIZE);
+//	printk("\n\n\n in pending sanpshot test 1.0 %d",new_root_item->inode.nlink);
+//	printk("\n\n\n in pending sanpshot test 1.1 %d",root->root_item.inode.nlink);
 	if (!(root_flags & BTRFS_ROOT_SUBVOL_RDONLY)) {
+//		printk("\n\n\n in pending sanpshot test 2 %d",new_root_item->inode.nlink);
+//		printk("\n\n\n in pending sanpshot test 2.1 %d",root->root_item.inode.nlink);
 		memset(new_root_item->received_uuid, 0,
 		       sizeof(new_root_item->received_uuid));
 		memset(&new_root_item->stime, 0, sizeof(new_root_item->stime));
@@ -1636,7 +1641,10 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 				      pending->inherit, objectid);
 	if (ret < 0)
 		goto fail;
-
+	//printk("\n\n in create sanphost11 %d ",d_inode(dentry)->i_nlink);
+	printk("\n\n in create sanphost %d ", BTRFS_I(parent_inode)->vfs_inode.i_nlink);
+	//set_nlink(&BTRFS_I(parent_inode)->vfs_inode,2);
+//	printk("\n\n in name of dir  %s ", dentry->d_name.name);
 	ret = btrfs_insert_dir_item(trans, parent_root,
 				    dentry->d_name.name, dentry->d_name.len,
 				    BTRFS_I(parent_inode), &key,
