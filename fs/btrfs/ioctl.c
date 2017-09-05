@@ -738,16 +738,11 @@ static int create_snapshot(struct btrfs_root *root, struct inode *dir,
 	ret = btrfs_orphan_cleanup(pending_snapshot->snap);
 	if (ret)
 		goto fail;
-	inode = btrfs_lookup_dentry(d_inode(dentry->d_parent), dentry);
+	inode =btrfs_lookup_dentry(d_inode(dentry->d_parent), dentry);
 	if (IS_ERR(inode)) {
 		ret = PTR_ERR(inode);
 		goto fail;
 	}
-	//inc_nlink(&BTRFS_I(inode)->vfs_inode);
-	//set_nlink(inode, d_inode(dentry->d_parent)->i_nlink);
-	//set_nlink(pending_snapshot->dir, 2);
-//	printk("\n\n I in sanpshot:1 %x ", pending_snapshot->dir->i_nlink);
-//	printk("\n\n I in sanpshot:2 %x ", inode->i_nlink);
 	d_instantiate(dentry, inode);
 	ret = 0;
 fail:
@@ -868,7 +863,8 @@ static noinline int btrfs_mksubvol(const struct path *parent,
 
 	if (btrfs_root_refs(&BTRFS_I(dir)->root->root_item) == 0)
 		goto out_up_read;
-	inc_nlink(&BTRFS_I(dir)->vfs_inode);
+	if (BTRFS_I(dir)->vfs_inode.i_nlink > 1)
+		inc_nlink(&BTRFS_I(dir)->vfs_inode);
 	if (snap_src) {
 		error = create_snapshot(snap_src, dir, dentry,
 					async_transid, readonly, inherit);
@@ -878,8 +874,6 @@ static noinline int btrfs_mksubvol(const struct path *parent,
 	}
 	if (!error)
 		fsnotify_mkdir(dir, dentry);
-	//inc_nlink(&BTRFS_I(dir)->vfs_inode);
-	printk("\n\n in mksubvol %x",&BTRFS_I(dir)->vfs_inode.i_nlink);
 out_up_read:
 	up_read(&fs_info->subvol_sem);
 out_dput:
@@ -1654,12 +1648,10 @@ static noinline int btrfs_ioctl_snap_create_transid(struct file *file,
 		ret = -EEXIST;
 		goto out_drop_write;
 	}
-	printk("\n\n%d subvol value",subvol);
 	if (subvol) {
 		ret = btrfs_mksubvol(&file->f_path, name, namelen,
 				     NULL, transid, readonly, inherit);
 	} else {
-		printk("\n\n subvol value dsdds");
 		struct fd src = fdget(fd);
 		struct inode *src_inode;
 		if (!src.file) {
@@ -2501,7 +2493,7 @@ static noinline int btrfs_ioctl_snap_destroy(struct file *file,
 
 	btrfs_record_snapshot_destroy(trans, BTRFS_I(dir));
 	if(BTRFS_I(dir)->vfs_inode.i_nlink >  1)
-		drop_nlink(&BTRFS_I(dir)->vfs_inode);
+		inode_dec_link_count(&BTRFS_I(dir)->vfs_inode);
 
 	ret = btrfs_unlink_subvol(trans, root, dir,
 				dest->root_key.objectid,

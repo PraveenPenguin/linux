@@ -436,7 +436,6 @@ int btrfs_delete_one_dir_name(struct btrfs_trans_handle *trans,
 		btrfs_dir_data_len(leaf, di);
 	item_len = btrfs_item_size_nr(leaf, path->slots[0]);
 	if (sub_item_len == item_len) {
-		printk("\n\nin lenght");
 		ret = btrfs_del_item(trans, root, path);
 	} else {
 		/* MARKER */

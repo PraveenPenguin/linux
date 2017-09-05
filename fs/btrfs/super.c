@@ -1426,7 +1426,6 @@ static struct dentry *mount_subvol(const char *subvol_name, u64 subvol_objectid,
 	root = mount_subtree(mnt, subvol_name);
 	/* mount_subtree() drops our reference on the vfsmount. */
 	mnt = NULL;
-	printk("\n\n IN mount ");
 	if (!IS_ERR(root)) {
 		struct super_block *s = root->d_sb;
 		struct btrfs_fs_info *fs_info = btrfs_sb(s);
