@@ -882,6 +882,7 @@ static noinline int drop_one_dir_item(struct btrfs_trans_handle *trans,
 
 	ret = btrfs_unlink_inode(trans, root, dir, BTRFS_I(inode), name,
 			name_len);
+	printk("\n\n unlink one dir item %s", name);
 	if (ret)
 		goto out;
 	else

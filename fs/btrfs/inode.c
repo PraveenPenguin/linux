@@ -4131,7 +4131,7 @@ int btrfs_unlink_inode(struct btrfs_trans_handle *trans,
 	int ret;
 	ret = __btrfs_unlink_inode(trans, root, dir, inode, name, name_len);
 	if (!ret) {
-		set_nlink(&inode->vfs_inode,0);
+		drop_nlink(&inode->vfs_inode);
 		ret = btrfs_update_inode(trans, root, &inode->vfs_inode);
 	}
 	return ret;
@@ -4303,7 +4303,8 @@ static int btrfs_rmdir(struct inode *dir, struct dentry *dentry)
 
 	/* now the directory is empty */
 	if(BTRFS_I(dir)->vfs_inode.i_nlink >  1)
-		inode_dec_link_count(&BTRFS_I(dir)->vfs_inode);
+		drop_nlink(&BTRFS_I(dir)->vfs_inode);
+	drop_nlink(&BTRFS_I(d_inode(dentry))->vfs_inode);
 	err = btrfs_unlink_inode(trans, root, BTRFS_I(dir),
 			BTRFS_I(d_inode(dentry)), dentry->d_name.name,
 		dentry->d_name.len);
@@ -6553,7 +6554,7 @@ static int btrfs_create(struct inode *dir, struct dentry *dentry,
 	inode = btrfs_new_inode(trans, root, dir, dentry->d_name.name,
 			dentry->d_name.len, btrfs_ino(BTRFS_I(dir)), objectid,
 			mode, &index);
-	set_nlink(inode, 2);
+	//set_nlink(inode, 2);
 	if (IS_ERR(inode)) {
 		err = PTR_ERR(inode);
 		goto out_unlock;
@@ -6589,8 +6590,8 @@ static int btrfs_create(struct inode *dir, struct dentry *dentry,
 out_unlock:
 	btrfs_end_transaction(trans);
 	if (err && drop_inode_on_err) {
-		//inode_dec_link_count(inode);
-		set_nlink(inode, 0);
+		inode_dec_link_count(inode);
+		//set_nlink(inode, 0);
 		iput(inode);
 	}
 	btrfs_balance_delayed_items(fs_info);
@@ -6643,6 +6644,7 @@ static int btrfs_link(struct dentry *old_dentry, struct inode *dir,
 	inode_inc_iversion(inode);
 	inode->i_ctime = current_time(inode);
 	ihold(inode);
+	printk("\n\nIn btrfs link %s:::%s",dentry->d_name.name,old_dentry->d_name.name);
 	set_bit(BTRFS_INODE_COPY_EVERYTHING, &BTRFS_I(inode)->runtime_flags);
 
 	err = btrfs_add_nondir(trans, BTRFS_I(dir), dentry, BTRFS_I(inode),
@@ -9798,6 +9800,10 @@ static int btrfs_rename_exchange(struct inode *old_dir,
 		btrfs_end_log_trans(dest);
 		dest_log_pinned = false;
 	}
+	if (S_ISDIR(old_inode->i_mode) &&  old_dentry->d_parent != new_dentry->d_parent){
+		drop_nlink(&BTRFS_I(d_inode(old_dentry->d_parent))->vfs_inode);
+		inc_nlink(&BTRFS_I(d_inode(new_dentry->d_parent))->vfs_inode);
+	}
 out_fail:
 	/*
 	 * If we have pinned a log and an error happened, we unpin tasks
@@ -10000,7 +10006,7 @@ static int btrfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 	new_dir->i_ctime = new_dir->i_mtime =
 	old_inode->i_ctime = current_time(old_dir);
 
-	if (old_dentry->d_parent != new_dentry->d_parent)
+	if ( old_dentry->d_parent != new_dentry->d_parent)
 		btrfs_record_unlink_dir(trans, BTRFS_I(old_dir),
 				BTRFS_I(old_inode), 1);
 
@@ -10017,6 +10023,11 @@ static int btrfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 		if (!ret)
 			ret = btrfs_update_inode(trans, root, old_inode);
 	}
+	/*printk("\n in rename %s:::%s",new_dentry->d_name.name,old_dentry->d_name.name);
+	if ( old_dentry->d_parent != new_dentry->d_parent){
+		drop_nlink(&BTRFS_I(d_inode(old_dentry->d_parent))->vfs_inode);
+		inc_nlink(&BTRFS_I(d_inode(new_dentry->d_parent))->vfs_inode);
+		}*/
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
 		goto out_fail;
@@ -10077,6 +10088,11 @@ static int btrfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 			goto out_fail;
 		}
 	}
+	if (S_ISDIR(old_inode->i_mode) &&  old_dentry->d_parent != new_dentry->d_parent){
+		drop_nlink(&BTRFS_I(d_inode(old_dentry->d_parent))->vfs_inode);
+		inc_nlink(&BTRFS_I(d_inode(new_dentry->d_parent))->vfs_inode);
+	}
+
 out_fail:
 	/*
 	 * If we have pinned the log and an error happened, we unpin tasks
