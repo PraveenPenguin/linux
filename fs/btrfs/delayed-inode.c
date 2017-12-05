@@ -1124,7 +1124,6 @@ __btrfs_commit_inode_delayed_items(struct btrfs_trans_handle *trans,
 	ret = btrfs_delete_delayed_items(trans, path, node->root, node);
 	if (ret)
 		return ret;
-
 	ret = btrfs_update_delayed_inode(trans, node->root, path, node);
 	return ret;
 }

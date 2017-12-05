@@ -563,6 +563,7 @@ struct fsnotify_mark_connector;
  * the RCU path lookup and 'stat' data) fields at the beginning
  * of the 'struct inode'
  */
+
 struct inode {
 	umode_t			i_mode;
 	unsigned short		i_opflags;

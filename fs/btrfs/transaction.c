@@ -1510,7 +1510,6 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 					 dentry->d_name.len, 0);
 	if (dir_item != NULL && !IS_ERR(dir_item)) {
 		pending->error = -EEXIST;
-		printk("\n\ndir exists");
 		goto dir_item_existed;
 	} else if (IS_ERR(dir_item)) {
 		ret = PTR_ERR(dir_item);
@@ -1525,6 +1524,7 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	 * otherwise we corrupt the FS during
 	 * snapshot
 	 */
+
 	ret = btrfs_run_delayed_items(trans, fs_info);
 	if (ret) {	/* Transaction aborted */
 		btrfs_abort_transaction(trans, ret);
@@ -1549,11 +1549,7 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	memcpy(new_root_item->uuid, new_uuid.b, BTRFS_UUID_SIZE);
 	memcpy(new_root_item->parent_uuid, root->root_item.uuid,
 			BTRFS_UUID_SIZE);
-//	printk("\n\n\n in pending sanpshot test 1.0 %d",new_root_item->inode.nlink);
-//	printk("\n\n\n in pending sanpshot test 1.1 %d",root->root_item.inode.nlink);
 	if (!(root_flags & BTRFS_ROOT_SUBVOL_RDONLY)) {
-//		printk("\n\n\n in pending sanpshot test 2 %d",new_root_item->inode.nlink);
-//		printk("\n\n\n in pending sanpshot test 2.1 %d",root->root_item.inode.nlink);
 		memset(new_root_item->received_uuid, 0,
 		       sizeof(new_root_item->received_uuid));
 		memset(&new_root_item->stime, 0, sizeof(new_root_item->stime));
@@ -1616,18 +1612,21 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	if (IS_ERR(pending->snap)) {
 		ret = PTR_ERR(pending->snap);
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 6");
 		goto fail;
 	}
 
 	ret = btrfs_reloc_post_snapshot(trans, pending);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 7");
 		goto fail;
 	}
 
 	ret = btrfs_run_delayed_refs(trans, fs_info, (unsigned long)-1);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 8");
 		goto fail;
 	}
 
@@ -1639,12 +1638,10 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	 */
 	ret = qgroup_account_snapshot(trans, root, parent_root,
 				      pending->inherit, objectid);
-	if (ret < 0)
+	if (ret < 0){
+		printk("\n\n Failed sanpshot 9");
 		goto fail;
-	//printk("\n\n in create sanphost11 %d ",d_inode(dentry)->i_nlink);
-	printk("\n\n in create sanphost %d ", BTRFS_I(parent_inode)->vfs_inode.i_nlink);
-	//set_nlink(&BTRFS_I(parent_inode)->vfs_inode,2);
-//	printk("\n\n in name of dir  %s ", dentry->d_name.name);
+	}
 	ret = btrfs_insert_dir_item(trans, parent_root,
 				    dentry->d_name.name, dentry->d_name.len,
 				    BTRFS_I(parent_inode), &key,
@@ -1653,6 +1650,7 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	BUG_ON(ret == -EEXIST || ret == -EOVERFLOW);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 10");
 		goto fail;
 	}
 
@@ -1663,12 +1661,14 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	ret = btrfs_update_inode_fallback(trans, parent_root, parent_inode);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 11");
 		goto fail;
 	}
 	ret = btrfs_uuid_tree_add(trans, fs_info, new_uuid.b,
 				  BTRFS_UUID_KEY_SUBVOL, objectid);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 12");
 		goto fail;
 	}
 	if (!btrfs_is_empty_uuid(new_root_item->received_uuid)) {
@@ -1678,6 +1678,7 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 					  objectid);
 		if (ret && ret != -EEXIST) {
 			btrfs_abort_transaction(trans, ret);
+			printk("\n\n Failed sanpshot 13");
 			goto fail;
 		}
 	}
@@ -1685,11 +1686,14 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	ret = btrfs_run_delayed_refs(trans, fs_info, (unsigned long)-1);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
+		printk("\n\n Failed sanpshot 13.1");
 		goto fail;
 	}
-
+	
 fail:
 	pending->error = ret;
+	//dump_stack();
+	printk("\n\n Failed sanpshot %d",ret);
 dir_item_existed:
 	trans->block_rsv = rsv;
 	trans->bytes_reserved = 0;
