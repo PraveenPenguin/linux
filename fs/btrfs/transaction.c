@@ -1612,21 +1612,18 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	if (IS_ERR(pending->snap)) {
 		ret = PTR_ERR(pending->snap);
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 6");
 		goto fail;
 	}
 
 	ret = btrfs_reloc_post_snapshot(trans, pending);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 7");
 		goto fail;
 	}
 
 	ret = btrfs_run_delayed_refs(trans, fs_info, (unsigned long)-1);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 8");
 		goto fail;
 	}
 
@@ -1639,7 +1636,6 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	ret = qgroup_account_snapshot(trans, root, parent_root,
 				      pending->inherit, objectid);
 	if (ret < 0){
-		printk("\n\n Failed sanpshot 9");
 		goto fail;
 	}
 	ret = btrfs_insert_dir_item(trans, parent_root,
@@ -1650,7 +1646,6 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	BUG_ON(ret == -EEXIST || ret == -EOVERFLOW);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 10");
 		goto fail;
 	}
 
@@ -1661,14 +1656,12 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	ret = btrfs_update_inode_fallback(trans, parent_root, parent_inode);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 11");
 		goto fail;
 	}
 	ret = btrfs_uuid_tree_add(trans, fs_info, new_uuid.b,
 				  BTRFS_UUID_KEY_SUBVOL, objectid);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 12");
 		goto fail;
 	}
 	if (!btrfs_is_empty_uuid(new_root_item->received_uuid)) {
@@ -1678,7 +1671,6 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 					  objectid);
 		if (ret && ret != -EEXIST) {
 			btrfs_abort_transaction(trans, ret);
-			printk("\n\n Failed sanpshot 13");
 			goto fail;
 		}
 	}
@@ -1686,14 +1678,11 @@ static noinline int create_pending_snapshot(struct btrfs_trans_handle *trans,
 	ret = btrfs_run_delayed_refs(trans, fs_info, (unsigned long)-1);
 	if (ret) {
 		btrfs_abort_transaction(trans, ret);
-		printk("\n\n Failed sanpshot 13.1");
 		goto fail;
 	}
 	
 fail:
 	pending->error = ret;
-	//dump_stack();
-	printk("\n\n Failed sanpshot %d",ret);
 dir_item_existed:
 	trans->block_rsv = rsv;
 	trans->bytes_reserved = 0;
